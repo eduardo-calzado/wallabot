@@ -16,11 +16,11 @@ jobs:
         uses: actions/cache@v3
         with:
           path: offers.pickle
-          # Use a date-based key that changes daily (prevents stale data)
-          key: offers-${{ github.repository }}-${{ github.ref }}-${{ github.run_id }}
+          # Use a fixed key that doesn't change with each run
+          key: offers-${{ github.repository }}-${{ github.ref }}
           restore-keys: |
-            offers-${{ github.repository }}-${{ github.ref }}-
-            offers-${{ github.repository }}-
+            offers-${{ github.repository }}-${{ github.ref }}
+            offers-${{ github.repository }}
             offers-
       
       - name: Set up Python
