@@ -11,6 +11,18 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       
+      # Restore offers.pickle from cache
+      - name: Restore offers cache
+        uses: actions/cache@v3
+        with:
+          path: offers.pickle
+          # Use a date-based key that changes daily (prevents stale data)
+          key: offers-${{ github.repository }}-${{ github.ref }}-${{ github.run_id }}
+          restore-keys: |
+            offers-${{ github.repository }}-${{ github.ref }}-
+            offers-${{ github.repository }}-
+            offers-
+      
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -34,18 +46,25 @@ jobs:
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
           EMAIL_RECEIVER: ${{ secrets.EMAIL_RECEIVER }}
         run: |
-          # Replace credentials in config.py
           sed -i "s/username = '.*'/username = '$EMAIL_USERNAME'/" config.py
           sed -i "s/password = '.*'/password = '$EMAIL_PASSWORD'/" config.py
           sed -i "s/receiver = '.*'/receiver = '$EMAIL_RECEIVER'/" config.py
       
+      # Create empty pickle file if it doesn't exist
+      - name: Ensure pickle file exists
+        run: |
+          if [ ! -f offers.pickle ]; then
+            echo "Creating new offers.pickle file"
+            touch offers.pickle
+          fi
+      
       - name: Run Wallabot
         run: python wallabot.py --headless
         
-      - name: Save results
+      # Upload logs as artifacts for inspection
+      - name: Upload logs
         uses: actions/upload-artifact@v3
         with:
-          name: wallabot-results
-          path: |
-            wallabot.log
-            offers.pickle
+          name: wallabot-logs
+          path: wallabot.log
+          retention-days: 7
