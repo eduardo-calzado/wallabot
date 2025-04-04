@@ -55,8 +55,8 @@ def generate_html_item(item):
                 </div>
                 <div style="margin-top: 4px;">
                     <p style="margin: 2px 0; font-size: 12px;"><strong>👤 {item.get('seller_name', 'Sin nombre')}</strong> | 📍 {item.get('location', 'Ubicación desconocida')}</p>
-                    <p style="margin: 2px 0; font-size: 12px;"><strong>⭐ {item.get('seller_rate', '0')}</strong> ({item.get('seller_number_of_rates', '0')} valoraciones)</p>
-                    <p style="margin: 2px 0; font-size: 12px;"><strong>📊 {item.get('seller_sales', '0')}</strong> ventas</p>
+                    <p style="margin: 2px 0; font-size: 12px;"><strong>⭐ {item.get('seller_rate', '0')}</strong> {item.get('seller_number_of_rates', '0')} valoraciones</p>
+                    <p style="margin: 2px 0; font-size: 12px;"><strong>📊 {item.get('seller_sales', '0')}</strong></p>
                     <p style="margin: 2px 0; font-size: 12px;"><strong>🚚 Envío:</strong> {item.get('shipping', 'No')}</p>
                 </div>
             </div>

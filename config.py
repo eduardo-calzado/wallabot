@@ -45,7 +45,7 @@ ENABLE_FILE_LOGGING = True
 ######################
 
 # Maximum number of items to check per search (limits processing time)
-MAX_ITEMS_TO_CHECK = 6
+MAX_ITEMS_TO_CHECK = 30
 
 # Skip processing reserved items completely 
 SKIP_RESERVED_ITEMS = True
@@ -53,8 +53,11 @@ SKIP_RESERVED_ITEMS = True
 # Only process items with shipping available
 SHIPPING_REQUIRED = True
 
+# Minimum seller rate required (skip items with fewer ratings)
+SKIP_WITH_LESS_THAN_SELLER_RATE = 3
+
 # Minimum seller rating count required (skip items with fewer ratings)
-SKIP_WITH_LESS_THAN_RATING_COUNTER = 3
+SKIP_WITH_LESS_THAN_RATING_COUNTER = 0
 
 # Minimum number of sales required (skip items with fewer sales)
-SKIP_WITH_LESS_THAN_SALES_NUMBER = 5
+SKIP_WITH_LESS_THAN_SALES_NUMBER = 0

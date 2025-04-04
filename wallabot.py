@@ -234,6 +234,24 @@ def get_seller_info(driver, product_url):
             result["number_of_rates"] = counter_text if counter_text else "0"
             log_debug(f"Found reviews counter: {result['number_of_rates']}")
             
+            # Try to find the rate in the span before the reviews counter
+            try:
+                # Find the parent of the reviews counter
+                parent = reviews_counter.find_element(By.XPATH, '..')
+                # Find all spans in the parent
+                spans = parent.find_elements(By.TAG_NAME, 'span')
+                # Find the position of the reviews_counter in the spans
+                for i, span in enumerate(spans):
+                    if span == reviews_counter:
+                        # Check if there's a span before this one
+                        if i > 0:
+                            rate_span = spans[i-1]
+                            result["rate"] = rate_span.text.strip()
+                            log_debug(f"Found seller rate from span before reviews counter: {result['rate']}")
+                            break
+            except Exception as e:
+                log_debug(f"Couldn't get rate from span before reviews counter: {e}")
+            
             # Check if we should skip items with low rating counts
             min_ratings = getattr(cfg, 'SKIP_WITH_LESS_THAN_RATING_COUNTER', 0)
             if min_ratings > 0:
@@ -260,14 +278,6 @@ def get_seller_info(driver, product_url):
         except Exception:
             log_debug("Reviews counter not found")
             
-        # Extract seller rate (score) - handled in separate try/except
-        try:
-            rate_element = driver.find_element(By.CSS_SELECTOR, 'span[class*="item-detail-reviews-seller-info-title_ItemDetailReviewsInfoTitle__titleScore"]')
-            if rate_element:
-                result["rate"] = rate_element.text.strip()
-                log_debug(f"Found seller rate score: {result['rate']}")
-        except Exception:
-            log_debug("Seller rate score not found")
         
         # Extract seller name - handled in separate try/except
         try:
@@ -518,6 +528,10 @@ def scrape_offers(driver):
                     logger.debug(f"  Seller: {item['seller_name']}")
                     logger.debug(f"  Location: {item['location']}")
                     logger.debug(f"  Shipping: {item['shipping']}")
+                    logger.debug(f"  Seller rate: {item['seller_rate']}")
+                    logger.debug(f"  Seller sales: {item['seller_sales']}")
+                    logger.debug(f"  Seller number of rates: {item['seller_number_of_rates']}")
+                    logger.debug(f"  Seller number of sales: {item['seller_sales']}")
                 
                 # Item passed all filters, add it to valid items
                 valid_items.append(item)
