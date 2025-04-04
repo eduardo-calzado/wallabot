@@ -1,8 +1,6 @@
-# Wallabot
+<img src="https://i.ibb.co/W4mFFqpG/FDBEC4-CF-569-F-4026-A1-A9-F2-F9197-B5214-2.png" alt="Wallabot Email Notification Sample" width="175px">
 
-<div align="center">
-  <img src="https://i.ibb.co/W4mFFqpG/FDBEC4-CF-569-F-4026-A1-A9-F2-F9197-B5214-2.png" alt="Wallabot Email Notification Sample" width="150px">
-</div>
+# Wallabot
 
 Monitors Wallapop for new listings matching your search criteria and sends email notifications with product images, seller information, and more.
 
