@@ -126,6 +126,101 @@ To run the script automatically on a schedule:
 7. Select "Start a program" and click Next
 8. Browse to your batch file and click Next, then Finish
 
+## Automatic Execution with GitHub Actions
+
+You can run Wallabot automatically in the cloud using GitHub Actions:
+
+1. Create a GitHub repository for your Wallabot code
+2. Add the following GitHub secrets in your repository settings:
+   - `EMAIL_USERNAME`: Your Gmail account
+   - `EMAIL_PASSWORD`: Your app password
+   - `EMAIL_RECEIVER`: Email that will receive notifications
+
+3. Create a workflow file at `.github/workflows/wallabot.yml` with:
+   ```yaml
+   name: Run Wallabot
+
+   on:
+     schedule:
+       - cron: '*/10 * * * *'  # Runs every 10 minutes
+     workflow_dispatch:  # Allows manual triggering
+
+   jobs:
+     run-wallabot:
+       runs-on: ubuntu-latest
+       steps:
+         - uses: actions/checkout@v3
+         
+         # Restore offers.pickle from cache
+         - name: Restore offers cache
+           uses: actions/cache@v3
+           with:
+             path: offers.pickle
+             # Use a fixed key that doesn't change with each run
+             key: offers-${{ github.repository }}-${{ github.ref }}
+             restore-keys: |
+               offers-${{ github.repository }}-${{ github.ref }}
+               offers-${{ github.repository }}
+               offers-
+         
+         - name: Set up Python
+           uses: actions/setup-python@v4
+           with:
+             python-version: '3.10'
+             
+         - name: Install Chrome
+           run: |
+             wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+             sudo sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list'
+             sudo apt-get update
+             sudo apt-get install -y google-chrome-stable
+         
+         - name: Install dependencies
+           run: |
+             python -m pip install --upgrade pip
+             pip install -r requirements.txt
+         
+         - name: Update credentials in config.py
+           env:
+             EMAIL_USERNAME: ${{ secrets.EMAIL_USERNAME }}
+             EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+             EMAIL_RECEIVER: ${{ secrets.EMAIL_RECEIVER }}
+           run: |
+             sed -i "s/username = '.*'/username = '$EMAIL_USERNAME'/" config.py
+             sed -i "s/password = '.*'/password = '$EMAIL_PASSWORD'/" config.py
+             sed -i "s/receiver = '.*'/receiver = '$EMAIL_RECEIVER'/" config.py
+         
+         # Create empty pickle file if it doesn't exist
+         - name: Ensure pickle file exists
+           run: |
+             if [ ! -f offers.pickle ]; then
+               echo "Creating new offers.pickle file"
+               touch offers.pickle
+             fi
+         
+         - name: Run Wallabot
+           run: python wallabot.py --headless
+           
+         # Upload logs as artifacts for inspection
+         - name: Upload logs
+           uses: actions/upload-artifact@v4
+           with:
+             name: wallabot-logs
+             path: wallabot.log
+             retention-days: 7
+   ```
+
+4. Push all your code to GitHub
+5. GitHub will automatically run Wallabot according to the schedule
+
+This approach has several advantages:
+- No need to keep your computer running
+- Executes reliably on a schedule in the cloud
+- Logs are accessible through GitHub's interface
+- You can trigger manual runs through the Actions tab
+
+Note: GitHub's scheduled actions may sometimes be delayed during periods of high GitHub Actions usage.
+
 ## Troubleshooting
 
 If you encounter issues:
