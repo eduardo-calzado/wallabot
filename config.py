@@ -9,13 +9,13 @@ Edit these settings to customize how the bot works.
 #######################
 
 # The email address that will send notifications
-username = ''
+username = 'eduflash.tec@gmail.com'
 
 # Email password (for Gmail, use an app-specific password: https://myaccount.google.com/apppasswords)
-password = ''
+password = 'ygsl oyin eakf ftep'
 
 # The email address that will receive notifications
-receiver = ''
+receiver = 'eduflash.tec@gmail.com'
 
 ########################
 # Search Configuration #
@@ -35,7 +35,7 @@ OFFERS_URL ='https://es.wallapop.com/app/search?min_sale_price=500&max_sale_pric
 ######################
 
 # Enable detailed logging for debugging (slows down execution slightly)
-DEBUG = False
+DEBUG = True
 
 # Write logs to file (wallabot.log)
 ENABLE_FILE_LOGGING = True

@@ -63,7 +63,7 @@ jobs:
         
       # Upload logs as artifacts for inspection
       - name: Upload logs
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v2
         with:
           name: wallabot-logs
           path: wallabot.log
