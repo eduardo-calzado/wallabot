@@ -35,7 +35,7 @@ OFFERS_URL ='https://es.wallapop.com/app/search?min_sale_price=500&max_sale_pric
 ######################
 
 # Enable detailed logging for debugging (slows down execution slightly)
-DEBUG = True
+DEBUG = False
 
 # Write logs to file (wallabot.log)
 ENABLE_FILE_LOGGING = True
@@ -57,7 +57,7 @@ SHIPPING_REQUIRED = True
 SKIP_WITH_LESS_THAN_SELLER_RATE = 3
 
 # Minimum seller rating count required (skip items with fewer ratings)
-SKIP_WITH_LESS_THAN_RATING_COUNTER = 0
+SKIP_WITH_LESS_THAN_RATING_COUNTER = 5
 
 # Minimum number of sales required (skip items with fewer sales)
-SKIP_WITH_LESS_THAN_SALES_NUMBER = 0
+SKIP_WITH_LESS_THAN_SALES_NUMBER = 3
