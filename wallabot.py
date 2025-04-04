@@ -643,21 +643,35 @@ def check_history(current_offers):
         List of new offers not previously seen
     """
     new_offers = []
+    seen_urls = set()  # Set of URLs we've seen before
     
     try:
         if os.path.exists('offers.pickle') and os.path.getsize('offers.pickle') > 0:
             logger.info(f"Loading offer history...")
             try:
                 with open('offers.pickle', 'rb') as f:
-                    data = pickle.load(f)
-                log_debug(f"Loaded {len(data)} previous offers")
+                    saved_data = pickle.load(f)
                 
-                # Check for new offers
+                # Extract URLs from saved data
+                if isinstance(saved_data, list):
+                    # Handle list of offers (old format)
+                    for offer in saved_data:
+                        if isinstance(offer, dict) and 'enlace' in offer:
+                            seen_urls.add(offer['enlace'])
+                elif isinstance(saved_data, dict) and 'urls' in saved_data:
+                    # Handle dict with URLs (new format)
+                    seen_urls = set(saved_data['urls'])
+                    
+                log_debug(f"Loaded {len(seen_urls)} previous offer URLs")
+                
+                # Check for new offers by URL
                 for offer in current_offers:
-                    if offer not in data:
+                    if offer['enlace'] not in seen_urls:
                         logger.info(f"New offer: {offer['titulo']}")
-                        data.append(offer)
+                        seen_urls.add(offer['enlace'])
                         new_offers.append(offer)
+                    else:
+                        log_debug(f"Skipping previously seen offer: {offer['titulo']}")
             except (pickle.UnpicklingError, EOFError, UnicodeDecodeError) as e:
                 logger.error(f"Error loading pickle file: {e}")
                 logger.info("Creating new history file due to corruption")
@@ -671,24 +685,27 @@ def check_history(current_offers):
                     logger.error(f"Failed to backup corrupt file: {backup_error}")
                 
                 # Use current offers as new data
-                data = current_offers
+                for offer in current_offers:
+                    seen_urls.add(offer['enlace'])
                 new_offers = current_offers
         else:
             logger.info("No history file found, creating new history")
-            data = current_offers
+            for offer in current_offers:
+                seen_urls.add(offer['enlace'])
             new_offers = current_offers
             
-        # Save updated history
-        log_debug(f"Saving {len(data)} offers to history")
+        # Save updated history - new format (just URLs)
+        log_debug(f"Saving {len(seen_urls)} offer URLs to history")
         try:
             with open('offers.pickle', 'wb') as f:
-                pickle.dump(data, f, pickle.HIGHEST_PROTOCOL)
+                # Save as a dict with URLs set for better compatibility
+                pickle.dump({'urls': list(seen_urls)}, f, pickle.HIGHEST_PROTOCOL)
         except Exception as save_error:
             logger.error(f"Error saving history file: {save_error}")
             # Try with a new file if saving fails
             try:
                 with open('offers_new.pickle', 'wb') as f:
-                    pickle.dump(data, f, pickle.HIGHEST_PROTOCOL)
+                    pickle.dump({'urls': list(seen_urls)}, f, pickle.HIGHEST_PROTOCOL)
                 logger.info("Saved to alternate file offers_new.pickle")
             except Exception:
                 logger.error("Failed to save history to alternate file")
