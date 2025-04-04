@@ -37,7 +37,10 @@ def test_email():
             'seller_sales': '18',
             'location': 'Madrid',
             'shipping': 'Sí',
-            'image_url': 'https://cdn.wallapop.com/images/10420/dj/wi/__/c10420p826133360/i2897532934.jpg'
+            'image_url': 'https://cdn.wallapop.com/images/10420/dj/wi/__/c10420p826133360/i2897532934.jpg',
+            'last_update': 'Hace 1 hora',
+            'views': '100',
+            'favorites': '50'
         },
         {
             'titulo': 'PlayStation 5 Pro 30th Anniversary Edition',
@@ -50,7 +53,10 @@ def test_email():
             'seller_sales': '57',
             'location': 'Barcelona',
             'shipping': 'No',
-            'image_url': 'https://cdn.wallapop.com/images/10420/gk/rz/__/c10420p912345678/i3456789012.jpg'
+            'image_url': 'https://cdn.wallapop.com/images/10420/gk/rz/__/c10420p912345678/i3456789012.jpg',
+            'last_update': 'Hace 4 horas',
+            'views': '100',
+            'favorites': '50'
         },
         {
             'titulo': 'PlayStation 5 + 2 Mandos + 3 Juegos',
@@ -63,7 +69,10 @@ def test_email():
             'seller_sales': '3',
             'location': 'Valencia',
             'shipping': 'Sí',
-            'image_url': 'https://cdn.wallapop.com/images/10420/ab/cd/__/c10420p987654321/i3141592654.jpg'
+            'image_url': 'https://cdn.wallapop.com/images/10420/ab/cd/__/c10420p987654321/i3141592654.jpg',
+            'last_update': 'Editado hace 1 hora',
+            'views': '100',
+            'favorites': '50'
         }
     ]
     

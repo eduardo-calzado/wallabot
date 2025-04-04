@@ -135,7 +135,10 @@ def get_seller_info(driver, product_url):
         "location": "Ubicación desconocida",
         "shipping": "No",
         "image_url": "",  # Fallback if not found on search page
-        "filtered": False
+        "filtered": False,
+        "last_update": "Desconocido",  # New: Last update time
+        "views": "0",                  # New: View count
+        "favorites": "0"               # New: Favorites count
     }
     
     try:
@@ -146,6 +149,33 @@ def get_seller_info(driver, product_url):
         # Debug page title
         log_debug(f"Product page title: {driver.title}")
         
+        # Extract last update time
+        try:
+            last_update_element = driver.find_element(By.CSS_SELECTOR, 'span[class*="ItemDetailStats__description"]')
+            if last_update_element:
+                result["last_update"] = last_update_element.text.strip()
+                log_debug(f"Found last update: {result['last_update']}")
+        except Exception:
+            log_debug("Last update time not found")
+            
+        # Extract views count
+        try:
+            views_element = driver.find_element(By.CSS_SELECTOR, 'span[aria-label="Views"]')
+            if views_element:
+                result["views"] = views_element.text.strip()
+                log_debug(f"Found views: {result['views']}")
+        except Exception:
+            log_debug("Views count not found")
+            
+        # Extract favorites count
+        try:
+            favorites_element = driver.find_element(By.CSS_SELECTOR, 'span[aria-label="Favorites"]')
+            if favorites_element:
+                result["favorites"] = favorites_element.text.strip()
+                log_debug(f"Found favorites: {result['favorites']}")
+        except Exception:
+            log_debug("Favorites count not found")
+            
         # Extract product image - handled in separate try/except
         # Only as fallback, we now primarily get images from the search page
         try:
@@ -440,7 +470,10 @@ def scrape_offers(driver):
                     'seller_sales': "0",                    # Only available on product page
                     'location': "Desconocido",              # Only available on product page
                     'shipping': "No",                       # Only available on product page
-                    'image_url': ""                         # Available on search page
+                    'image_url': "",                        # Available on search page
+                    'last_update': "Desconocido",           # New: Last update time
+                    'views': "0",                           # New: View count
+                    'favorites': "0"                        # New: Favorites count
                 }
                 
                 # Extract basic card data with individual try/except for each field
@@ -518,6 +551,11 @@ def scrape_offers(driver):
                 item['seller_sales'] = seller_info.get('sales', "0")
                 item['location'] = seller_info.get('location', "Desconocido")
                 item['shipping'] = seller_info.get('shipping', "No")
+                
+                # Add new statistics
+                item['last_update'] = seller_info.get('last_update', "Desconocido")
+                item['views'] = seller_info.get('views', "0")
+                item['favorites'] = seller_info.get('favorites', "0")
                 
                 # Only update image URL if we didn't get it from the search page
                 if not item['image_url'] and seller_info.get('image_url'):

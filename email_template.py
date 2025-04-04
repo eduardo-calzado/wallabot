@@ -17,7 +17,7 @@ def generate_text_body(offers):
         String containing plain text email content
     """
     offers_text_array = [
-        '{}\nprecio: {}\nlink: {}\nEstado: {}\nVendedor: {}\nValoraciones: {}\nNúm. Valoraciones: {}\nVentas: {}\nUbicación: {}\nEnvío: {}\n\n'.format(
+        '{}\nprecio: {}\nlink: {}\nEstado: {}\nVendedor: {}\nValoraciones: {}\nNúm. Valoraciones: {}\nVentas: {}\nUbicación: {}\nEnvío: {}\nEstadísticas: Actualizado {}, {} visitas, {} favoritos\n\n'.format(
             n['titulo'], 
             n['precio'], 
             n['enlace'], 
@@ -27,7 +27,10 @@ def generate_text_body(offers):
             n.get('seller_number_of_rates', '0'),
             n.get('seller_sales', '0'),
             n.get('location', 'Ubicación desconocida'),
-            n.get('shipping', 'No')
+            n.get('shipping', 'No'),
+            n.get('last_update', 'Desconocido'),
+            n.get('views', '0'),
+            n.get('favorites', '0')
         ) for n in offers
     ]
     
@@ -55,9 +58,9 @@ def generate_html_item(item):
                 </div>
                 <div style="margin-top: 4px;">
                     <p style="margin: 2px 0; font-size: 12px;"><strong>👤 {item.get('seller_name', 'Sin nombre')}</strong> | 📍 {item.get('location', 'Ubicación desconocida')}</p>
-                    <p style="margin: 2px 0; font-size: 12px;"><strong>⭐ {item.get('seller_rate', '0')}</strong> {item.get('seller_number_of_rates', '0')} valoraciones</p>
-                    <p style="margin: 2px 0; font-size: 12px;"><strong>📊 {item.get('seller_sales', '0')}</strong></p>
+                    <p style="margin: 2px 0; font-size: 12px;"><strong>⭐ {item.get('seller_rate', '0')}</strong> {item.get('seller_number_of_rates', '0')} valoraciones | 📊 {item.get('seller_sales', '0')}</p>
                     <p style="margin: 2px 0; font-size: 12px;"><strong>🚚 Envío:</strong> {item.get('shipping', 'No')}</p>
+                    <p style="margin: 2px 0; font-size: 12px;">📈 {item.get('last_update', 'Desconocido')} | 👁️ {item.get('views', '0')} | ❤️ {item.get('favorites', '0')}</p>
                 </div>
             </div>
         </div>
