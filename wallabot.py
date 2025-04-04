@@ -199,7 +199,7 @@ def get_seller_info(driver, product_url):
         # Check if shipping is available
         has_shipping = False
         try:
-            shipping_element = driver.find_element(By.CSS_SELECTOR, 'wallapop-badge[badge-type="shippingAvailable"]')
+            shipping_element = driver.find_element(By.CSS_SELECTOR, 'section[class*="item-detail_ItemDetail"] wallapop-badge[badge-type="shippingAvailable"]')
             if shipping_element:
                 result["shipping"] = "Sí"
                 has_shipping = True
