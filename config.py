@@ -9,13 +9,13 @@ Edit these settings to customize how the bot works.
 #######################
 
 # The email address that will send notifications
-username = 'eduflash.tec@gmail.com'
+username = ''
 
 # Email password (for Gmail, use an app-specific password: https://myaccount.google.com/apppasswords)
-password = 'ygsl oyin eakf ftep'
+password = ''
 
 # The email address that will receive notifications
-receiver = 'eduflash.tec@gmail.com'
+receiver = ''
 
 ########################
 # Search Configuration #
