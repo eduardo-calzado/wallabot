@@ -232,3 +232,7 @@ If you encounter issues:
 
 ## Disclaimer
 This tool is for personal use only. The author takes no responsibility for any illegal use of this software.
+
+---
+
+Made by @eduardo-calzado with ❤️ for the Python community
