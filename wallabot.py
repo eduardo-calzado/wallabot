@@ -88,7 +88,7 @@ def send_mail(offers):
 
         # Setup message
         message = MIMEMultipart("alternative")
-        message["Subject"] = "Wallapop Offers Alert"
+        message["Subject"] = "Wallabot - New items found in Wallapop"
         message["From"] = cfg.username
         message["To"] = cfg.receiver
 

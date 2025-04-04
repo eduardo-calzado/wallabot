@@ -37,7 +37,7 @@ def test_email():
             'seller_sales': '18',
             'location': 'Madrid',
             'shipping': 'Sí',
-            'image_url': 'https://media.ldlc.com/r374/ld/products/00/06/17/73/LD0006177357.jpg',
+            'image_url': 'https://m.media-amazon.com/images/I/61Ezrc4JKWL.jpg',
             'last_update': 'Hace 1 hora',
             'views': '100',
             'favorites': '50'
@@ -69,7 +69,7 @@ def test_email():
             'seller_sales': '3',
             'location': 'Valencia',
             'shipping': 'Sí',
-            'image_url': 'https://media.ldlc.com/r374/ld/products/00/06/17/73/LD0006177357.jpg',
+            'image_url': 'https://img.pccomponentes.com/pcblog/11497/ps5-slim-ps5-pro-pccomponentes.jpg',
             'last_update': 'Editado hace 1 hora',
             'views': '100',
             'favorites': '50'
