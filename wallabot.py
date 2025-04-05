@@ -138,7 +138,8 @@ def get_seller_info(driver, product_url):
         "filtered": False,
         "last_update": "Desconocido",  # New: Last update time
         "views": "0",                  # New: View count
-        "favorites": "0"               # New: Favorites count
+        "favorites": "0",              # New: Favorites count
+        "profesional": "No"            # New: Professional seller indicator
     }
     
     try:
@@ -210,6 +211,22 @@ def get_seller_info(driver, product_url):
         except Exception:
             log_debug("Shipping not available (no element)")
             result["shipping"] = "No"
+        
+        # Check if seller is professional
+        try:
+            professional_badge = driver.find_element(By.CSS_SELECTOR, 'wallapop-badge[aria-label="Seller is professional"]')
+            if professional_badge:
+                result["profesional"] = "Sí"
+                log_debug("Found professional seller badge")
+                
+                # Skip professional sellers if configured
+                if getattr(cfg, 'SKIP_PROFESIONAL_SELLER', False):
+                    logger.info(f"Skipping item from professional seller: {driver.title}")
+                    result["filtered"] = True
+                    return result
+        except Exception:
+            log_debug("Professional seller badge not found")
+            result["profesional"] = "No"
         
         # If shipping is required but this item doesn't have it, return early
         if getattr(cfg, 'SHIPPING_REQUIRED', False) and not has_shipping:
@@ -473,7 +490,8 @@ def scrape_offers(driver):
                     'image_url': "",                        # Available on search page
                     'last_update': "Desconocido",           # New: Last update time
                     'views': "0",                           # New: View count
-                    'favorites': "0"                        # New: Favorites count
+                    'favorites': "0",                       # New: Favorites count
+                    'seller_profesional': "No"              # New: Professional seller indicator
                 }
                 
                 # Extract basic card data with individual try/except for each field
@@ -556,6 +574,7 @@ def scrape_offers(driver):
                 item['last_update'] = seller_info.get('last_update', "Desconocido")
                 item['views'] = seller_info.get('views', "0")
                 item['favorites'] = seller_info.get('favorites', "0")
+                item['seller_profesional'] = seller_info.get('profesional', "No")
                 
                 # Only update image URL if we didn't get it from the search page
                 if not item['image_url'] and seller_info.get('image_url'):
@@ -570,6 +589,7 @@ def scrape_offers(driver):
                     logger.debug(f"  Seller sales: {item['seller_sales']}")
                     logger.debug(f"  Seller number of rates: {item['seller_number_of_rates']}")
                     logger.debug(f"  Seller number of sales: {item['seller_sales']}")
+                    logger.debug(f"  Professional seller: {item['seller_profesional']}")
                 
                 # Item passed all filters, add it to valid items
                 valid_items.append(item)

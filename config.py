@@ -61,3 +61,6 @@ SKIP_WITH_LESS_THAN_RATING_COUNTER = 5
 
 # Minimum number of sales required (skip items with fewer sales)
 SKIP_WITH_LESS_THAN_SALES_NUMBER = 3
+
+# Skip items from professional sellers
+SKIP_PROFESIONAL_SELLER = False
