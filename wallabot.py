@@ -4,9 +4,8 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from time import sleep
+from time import sleep, time
 from selenium.common.exceptions import NoSuchElementException
-import pickle
 import os
 import config as cfg
 import smtplib
@@ -14,6 +13,8 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import logging
 import email_template
+import json
+import datetime
 
 # Set up logging based on DEBUG flag in config
 DEBUG = getattr(cfg, 'DEBUG', False)
@@ -400,6 +401,42 @@ def get_seller_info(driver, product_url):
         # Always return result, with default values for any missing data
         return result
 
+def load_skipped_history():
+    """Load history of skipped/filtered items.
+    
+    Returns:
+        Set of URLs that were previously filtered out
+    """
+    skipped_file = 'skipped_items_history.json'
+    skipped_urls = set()
+    
+    if os.path.exists(skipped_file) and os.path.getsize(skipped_file) > 0:
+        try:
+            with open(skipped_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            if isinstance(data, dict) and 'urls' in data:
+                skipped_urls = set(data['urls'])
+            logger.info(f"Loaded {len(skipped_urls)} previously skipped item URLs")
+        except Exception as e:
+            logger.error(f"Error loading skipped items history: {e}")
+    
+    return skipped_urls
+
+def save_skipped_history(skipped_urls):
+    """Save history of skipped/filtered items.
+    
+    Args:
+        skipped_urls: Set of URLs that were filtered out
+    """
+    skipped_file = 'skipped_items_history.json'
+    
+    try:
+        with open(skipped_file, 'w', encoding='utf-8') as f:
+            json.dump({'urls': list(skipped_urls)}, f, indent=2)
+        logger.info(f"Saved {len(skipped_urls)} skipped item URLs to history")
+    except Exception as e:
+        logger.error(f"Error saving skipped items history: {e}")
+
 def scrape_offers(driver):
     """Check all offers on the Wallapop search page
     
@@ -407,8 +444,19 @@ def scrape_offers(driver):
         driver: Selenium WebDriver instance
         
     Returns:
-        List of valid product items that pass all filtering criteria
+        Tuple containing:
+        - List of valid product items that pass all filtering criteria
+        - Set of all URLs that were checked (including filtered ones)
     """
+    scrape_start_time = time()
+    all_checked_urls = set()  # Store all URLs we check, even filtered ones
+    skipped_urls = set()      # Store URLs that were filtered out
+    
+    # Load previously skipped items to avoid rechecking
+    load_start = time()
+    previously_skipped = load_skipped_history()
+    logger.info(f"Loaded {len(previously_skipped)} previously skipped items in {time() - load_start:.2f} seconds")
+    
     try:
         logger.info("Processing Wallapop search page...")
         try:
@@ -460,7 +508,7 @@ def scrape_offers(driver):
                     logger.debug("Page source saved to page_source.html")
                 except Exception:
                     log_debug("Failed to save page source")
-            return []
+            return [], set()
         
         # Extract data from cards WITHOUT visiting individual pages first
         new_cards = []
@@ -545,13 +593,25 @@ def scrape_offers(driver):
         logger.info(f"Collected data for {len(new_cards)} items")
         
         # Now visit all items' detail pages to get seller info
+        second_pass_start = time()
         logger.info(f"Second pass: visiting detail pages for {len(new_cards)} items to get seller info, location, and shipping details...")
         valid_items = []  # Create a list for items that pass all filters
         for idx, item in enumerate(new_cards):
+            item_start = time()
             if item['enlace'] != "#":
+                # Add to checked URLs list
+                all_checked_urls.add(item['enlace'])
+                
                 # Skip reserved items if configured to do so
                 if item['reservada'] and getattr(cfg, 'SKIP_RESERVED_ITEMS', False):
                     logger.info(f"Skipping reserved item: {item['titulo']}")
+                    skipped_urls.add(item['enlace'])
+                    continue
+                
+                # Skip this item if it was previously filtered out
+                if item['enlace'] in previously_skipped:
+                    logger.info(f"Skipping previously filtered item: {item['titulo']}")
+                    skipped_urls.add(item['enlace'])
                     continue
                     
                 log_debug(f"Visiting product page for item {idx+1}: {item['titulo']}")
@@ -560,6 +620,7 @@ def scrape_offers(driver):
                 # Check if the item was filtered in get_seller_info
                 if seller_info.get('filtered', False):
                     logger.info(f"Item was filtered: {item['titulo']}")
+                    skipped_urls.add(item['enlace'])
                     continue
                 
                 # Update with data only available on product detail page
@@ -590,25 +651,33 @@ def scrape_offers(driver):
                     logger.debug(f"  Seller number of rates: {item['seller_number_of_rates']}")
                     logger.debug(f"  Seller number of sales: {item['seller_sales']}")
                     logger.debug(f"  Professional seller: {item['seller_profesional']}")
+                    logger.debug(f"  Item {idx+1} processed in {time() - item_start:.2f} seconds")
                 
                 # Item passed all filters, add it to valid items
                 valid_items.append(item)
         
+        second_pass_time = time() - second_pass_start
         logger.info(f"Successfully processed {len(valid_items)} valid items out of {len(new_cards)} after filtering")
+        logger.info(f"Second pass completed in {second_pass_time:.2f} seconds, avg {second_pass_time/max(1, len(new_cards)):.2f} seconds per item")
         
-        # Print summary of what sources were used for data
-        print("INFORMATION SUMMARY:")
-        print("- Search page data: Product Title, Price, Link to Product, Reservation Status, Thumbnail Image")
-        print("- Product page data: Seller Name, Seller Ratings, Seller Sales, Location, Shipping Availability, Fallback Images")
+        # Save skipped URLs history
+        save_start = time()
+        # Combine with previously skipped ones
+        all_skipped = previously_skipped.union(skipped_urls)
+        save_skipped_history(all_skipped)
+        logger.info(f"Saved skipped history in {time() - save_start:.2f} seconds")
         
-        return valid_items
+        total_scrape_time = time() - scrape_start_time
+        logger.info(f"Total scraping time: {total_scrape_time:.2f} seconds")
+        
+        return valid_items, all_checked_urls
         
     except Exception as e:
         logger.error(f"Error in scrape_offers: {e}")
         if DEBUG:
             import traceback
             traceback.print_exc()
-        return []  # Return empty list instead of breaking
+        return [], set()  # Return empty list instead of breaking
 
 def setup_driver(headless=True):
     """Setup chrome driver to scrape
@@ -664,22 +733,18 @@ def check_history(current_offers):
     """
     new_offers = []
     seen_urls = set()  # Set of URLs we've seen before
+    history_file = 'offers_history.json'  # JSON-based history file
     
     try:
-        if os.path.exists('offers.pickle') and os.path.getsize('offers.pickle') > 0:
-            logger.info(f"Loading offer history...")
+        # Load existing history if available
+        if os.path.exists(history_file) and os.path.getsize(history_file) > 0:
+            logger.info(f"Loading offer history from {history_file}...")
             try:
-                with open('offers.pickle', 'rb') as f:
-                    saved_data = pickle.load(f)
+                with open(history_file, 'r', encoding='utf-8') as f:
+                    saved_data = json.load(f)
                 
                 # Extract URLs from saved data
-                if isinstance(saved_data, list):
-                    # Handle list of offers (old format)
-                    for offer in saved_data:
-                        if isinstance(offer, dict) and 'enlace' in offer:
-                            seen_urls.add(offer['enlace'])
-                elif isinstance(saved_data, dict) and 'urls' in saved_data:
-                    # Handle dict with URLs (new format)
+                if isinstance(saved_data, dict) and 'urls' in saved_data:
                     seen_urls = set(saved_data['urls'])
                     
                 log_debug(f"Loaded {len(seen_urls)} previous offer URLs")
@@ -692,15 +757,16 @@ def check_history(current_offers):
                         new_offers.append(offer)
                     else:
                         log_debug(f"Skipping previously seen offer: {offer['titulo']}")
-            except (pickle.UnpicklingError, EOFError, UnicodeDecodeError) as e:
-                logger.error(f"Error loading pickle file: {e}")
+                        
+            except json.JSONDecodeError as e:
+                logger.error(f"Error loading JSON history file: {e}")
                 logger.info("Creating new history file due to corruption")
                 # Create a backup of the corrupt file for debugging
                 try:
-                    if os.path.exists('offers.pickle'):
+                    if os.path.exists(history_file):
                         import shutil
-                        shutil.copy2('offers.pickle', 'offers.pickle.corrupt')
-                        logger.info("Backup of corrupt file saved as offers.pickle.corrupt")
+                        shutil.copy2(history_file, f'{history_file}.corrupt')
+                        logger.info(f"Backup of corrupt file saved as {history_file}.corrupt")
                 except Exception as backup_error:
                     logger.error(f"Failed to backup corrupt file: {backup_error}")
                 
@@ -709,24 +775,27 @@ def check_history(current_offers):
                     seen_urls.add(offer['enlace'])
                 new_offers = current_offers
         else:
-            logger.info("No history file found, creating new history")
+            # No history file exists, create new one with current offers
+            logger.info(f"No history file found, creating new history in {history_file}")
             for offer in current_offers:
                 seen_urls.add(offer['enlace'])
             new_offers = current_offers
             
-        # Save updated history - new format (just URLs)
-        log_debug(f"Saving {len(seen_urls)} offer URLs to history")
+        # Save updated history in JSON format
+        log_debug(f"Saving {len(seen_urls)} offer URLs to JSON history")
         try:
-            with open('offers.pickle', 'wb') as f:
-                # Save as a dict with URLs set for better compatibility
-                pickle.dump({'urls': list(seen_urls)}, f, pickle.HIGHEST_PROTOCOL)
+            with open(history_file, 'w', encoding='utf-8') as f:
+                json.dump({'urls': list(seen_urls)}, f, indent=2)
+                
+            logger.info(f"History saved to {history_file}")
+                    
         except Exception as save_error:
-            logger.error(f"Error saving history file: {save_error}")
+            logger.error(f"Error saving JSON history file: {save_error}")
             # Try with a new file if saving fails
             try:
-                with open('offers_new.pickle', 'wb') as f:
-                    pickle.dump({'urls': list(seen_urls)}, f, pickle.HIGHEST_PROTOCOL)
-                logger.info("Saved to alternate file offers_new.pickle")
+                with open('offers_history_new.json', 'w', encoding='utf-8') as f:
+                    json.dump({'urls': list(seen_urls)}, f, indent=2)
+                logger.info("Saved to alternate file offers_history_new.json")
             except Exception:
                 logger.error("Failed to save history to alternate file")
     except Exception as e:
@@ -736,6 +805,46 @@ def check_history(current_offers):
         
     return new_offers
 
+def update_history_with_checked_urls(checked_urls):
+    """Update history JSON file with all checked URLs to avoid re-checking filtered items.
+    
+    Args:
+        checked_urls: Set of URLs that were checked in this run
+    """
+    history_file = 'offers_history.json'
+    
+    try:
+        # First load existing history
+        seen_urls = set()
+        if os.path.exists(history_file) and os.path.getsize(history_file) > 0:
+            try:
+                with open(history_file, 'r', encoding='utf-8') as f:
+                    saved_data = json.load(f)
+                
+                # Extract URLs from saved data
+                if isinstance(saved_data, dict) and 'urls' in saved_data:
+                    seen_urls = set(saved_data['urls'])
+            except:
+                # If error loading, just use empty set
+                seen_urls = set()
+        
+        # Combine with newly checked URLs
+        all_urls = seen_urls.union(checked_urls)
+        
+        # Save combined history
+        with open(history_file, 'w', encoding='utf-8') as f:
+            json.dump({'urls': list(all_urls)}, f, indent=2)
+        logger.info(f"Saved {len(all_urls)} URLs to history ({len(checked_urls)} new)")
+    except Exception as e:
+        logger.error(f"Error updating history with all checked URLs: {e}")
+        # Try with a new file if saving fails
+        try:
+            with open('offers_history_new.json', 'w', encoding='utf-8') as f:
+                json.dump({'urls': list(all_urls)}, f, indent=2)
+            logger.info("Saved to alternate file offers_history_new.json")
+        except Exception:
+            logger.error("Failed to save history to alternate file")
+
 def main(headless=True, debug_delay=0):
     """Main function to run the bot
     
@@ -743,28 +852,41 @@ def main(headless=True, debug_delay=0):
         headless: Boolean indicating whether to run in headless mode
         debug_delay: Seconds to keep browser open for debugging (when not headless)
     """
+    start_time = time()
     driver = None
     logger.info("Starting Wallabot...")
     log_debug(f"Using search URL: {cfg.OFFERS_URL}")
     
     try:
+        driver_start = time()
         driver = setup_driver(headless)
+        logger.info(f"Driver setup completed in {time() - driver_start:.2f} seconds")
         
+        scrape_start = time()
         logger.info("Scraping offers...")
-        offers = scrape_offers(driver)
-        logger.info(f"Found {len(offers) if offers else 0} offers")
+        offers, all_checked_urls = scrape_offers(driver)
+        scrape_time = time() - scrape_start
+        
+        logger.info(f"Found {len(offers) if offers else 0} valid offers after filtering")
+        logger.info(f"Checked {len(all_checked_urls)} total URLs")
+        logger.info(f"Scraping completed in {scrape_time:.2f} seconds, avg {scrape_time/max(1, len(all_checked_urls)):.2f} seconds per URL")
 
         if not offers:
-            logger.info("No offers found")
+            logger.info("No valid offers found")
+            logger.info(f"Total execution time: {time() - start_time:.2f} seconds")
             return
             
+        history_start = time()
         logger.info("Checking for new offers...")
         new_offers = check_history(offers)
         logger.info(f"Found {len(new_offers)} new offers")
+        logger.info(f"History check completed in {time() - history_start:.2f} seconds")
 
         if new_offers:
+            email_start = time()
             logger.info("Sending email notification...")
             send_mail(new_offers)
+            logger.info(f"Email sent in {time() - email_start:.2f} seconds")
         else:
             logger.info("No new offers to send")
             
@@ -785,6 +907,10 @@ def main(headless=True, debug_delay=0):
                 driver.quit()
             except:
                 logger.error("Error closing driver")
+        
+        # Log total execution time
+        total_time = time() - start_time
+        logger.info(f"Total execution time: {total_time:.2f} seconds ({str(datetime.timedelta(seconds=int(total_time)))})")
         logger.info("Done")
                      
 if __name__=="__main__":
