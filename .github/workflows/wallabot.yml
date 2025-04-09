@@ -2,7 +2,7 @@ name: Run Wallabot
 
 on:
   schedule:
-    - cron: '*/10 * * * *'  # Runs every 10 minutes
+    - cron: '*/30 * * * *'  # Runs every 10 minutes
   workflow_dispatch:  # Allows manual triggering
 
 jobs:
@@ -11,17 +11,19 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       
-      # Restore offers.pickle from cache
-      - name: Restore offers cache
+      # Restore history files from cache
+      - name: Restore history cache
         uses: actions/cache@v3
         with:
-          path: offers.pickle
+          path: |
+            offers_history.json
+            skipped_items_history.json
           # Use a fixed key that doesn't change with each run
-          key: offers-${{ github.repository }}-${{ github.ref }}
+          key: wallabot-history-${{ github.repository }}-${{ github.ref }}
           restore-keys: |
-            offers-${{ github.repository }}-${{ github.ref }}
-            offers-${{ github.repository }}
-            offers-
+            wallabot-history-${{ github.repository }}-${{ github.ref }}
+            wallabot-history-${{ github.repository }}
+            wallabot-history-
       
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -50,12 +52,16 @@ jobs:
           sed -i "s/password = '.*'/password = '$EMAIL_PASSWORD'/" config.py
           sed -i "s/receiver = '.*'/receiver = '$EMAIL_RECEIVER'/" config.py
       
-      # Create empty pickle file if it doesn't exist
-      - name: Ensure pickle file exists
+      # Create empty history files if they don't exist
+      - name: Ensure history files exist
         run: |
-          if [ ! -f offers.pickle ]; then
-            echo "Creating new offers.pickle file"
-            touch offers.pickle
+          if [ ! -f offers_history.json ]; then
+            echo "Creating new offers_history.json file"
+            echo '{"urls": []}' > offers_history.json
+          fi
+          if [ ! -f skipped_items_history.json ]; then
+            echo "Creating new skipped_items_history.json file"
+            echo '{"urls": []}' > skipped_items_history.json
           fi
       
       - name: Run Wallabot
